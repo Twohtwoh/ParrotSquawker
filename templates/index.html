@@ -1,0 +1,465 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Audio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            /* add a light gray background */
+        }
+
+        #container {
+            width: 90%;
+            margin: 40px auto;
+            padding: 20px;
+            border-radius: 15px;
+            /* increase the border radius for a more rounded look */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            /* increase the shadow depth for better contrast */
+            background-color: #fff;
+            /* add a white background to improve visibility */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 15px;
+            font-weight: bold;
+            /* make labels stand out more */
+            color: #333;
+            /* adjust text color for better readability */
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            /* lighten the border color to create a sense of space */
+            border-radius: 5px;
+            /* reduce the border radius for a more subtle look */
+        }
+
+        textarea:hover {
+            background-color: #f2f2f2;
+            /* add a hover effect to textareas */
+        }
+
+        button {
+
+            padding: 5px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            /* adjust button colors to match your design scheme */
+            color: #fff;
+            /* make text on buttons more readable */
+            border-radius: 5px;
+            /* reduce the border radius for a more subtle look */
+            border: 2px solid #333;
+            /* add a dark gray border around buttons */
+        }
+
+        button:hover {
+
+            padding: 5px;
+            font-size: 16px;
+            background-color: #163317;
+            /* adjust button colors to match your design scheme */
+            color: #fff;
+            /* make text on buttons more readable */
+            border-radius: 5px;
+            /* reduce the border radius for a more subtle look */
+            border: 2px solid #333;
+            /* add a dark gray border around buttons */
+        }
+
+        button:disabled {
+
+            padding: 5px;
+            font-size: 16px;
+            background-color: #000000;
+            /* adjust button colors to match your design scheme */
+            color: #fff;
+            /* make text on buttons more readable */
+            border-radius: 5px;
+            /* reduce the border radius for a more subtle look */
+            border: 2px solid #333;
+            /* add a dark gray border around buttons */
+        }
+
+        #loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background-color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #loading-indicator i {
+            font-size: 60px;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #loading-indicator span {
+            font-size: 16px;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+
+<body>
+    <div id="container">
+        <label for="audio-input">Enter your audio query:</label>
+        <textarea id="audio-input" placeholder="Enter your query here..." rows="10" cols="50"></textarea>
+        <table width=100%>
+            <tr>
+                <td>
+                    <button id="generate-audio-btn" disabled>Generate Audio</button>
+                </td>
+
+                <td>
+                    <button id="Parrot-audio-btn" disabled>Prompt Parrot Audio</button>
+                </td>
+                <td>
+                    <button id="Villain-audio-btn" disabled>Prompt Villain Audio</button>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <button id="Full-audio-btn" disabled>Prompt Full Response Audio</button>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <button id="Query-btn">Prompt LLM</button>
+                </td>
+
+                <td>
+                    <button id="Stop-audio-btn">Stop Audio</button>
+                </td>
+                <td>
+                    <button id="Clear-Prompt">Reset Prompt</button>
+                </td>
+            </tr>
+       
+        </table>
+
+
+
+
+        <audio id="myAudio" src="" loop></audio><br>
+        <label id="dynamic-label" for="label-container">Dynamic Label</label>
+        <div id="loading-indicator">
+            <i class="fa fa-spinner fa-spin"></i>
+            <span>Loading...</span>
+        </div>
+    </div>
+
+    <script>
+        const playingAudios = [];
+        const generateAudioBtn = document.getElementById('generate-audio-btn');
+        const generatePromptBtn = document.getElementById('Parrot-audio-btn');
+        const generateVillainBtn = document.getElementById('Villain-audio-btn');
+        const generateFullBtn = document.getElementById('Full-audio-btn');
+        const resetBtn = document.getElementById('Clear-Prompt');
+        const StopBtn = document.getElementById('Stop-audio-btn');
+        const PromptButton = document.getElementById('Query-btn');
+        const audioPlayer = document.getElementById('audio-player');
+        const textInput = document.getElementById('audio-input');
+        document.getElementById('loading-indicator').style.display = 'none';
+        generateAudioBtn.disabled = false;
+        generatePromptBtn.disabled = false;
+        generateVillainBtn.disabled = false;
+        generateFullBtn.disabled = false;
+        var newLoc = "";
+        const audioFile = new Audio();
+        const labelElement = document.getElementById('dynamic-label');
+
+        generateAudioBtn.addEventListener('click', async () => {
+            document.getElementById('loading-indicator').style.display = 'block';
+
+            generateAudioBtn.disabled = true;
+            generatePromptBtn.disabled = true;
+            generateVillainBtn.disabled = true;
+            generateFullBtn.disabled = true;
+           
+            fetch('/DirectTTS?Prompt=' + textInput.value)
+                .then(response => response.json())
+                .then((response) => {
+                    console.log(response);
+                    const fileLocation = response['FileLocation'];
+                    const Message = response['Message'];
+                    labelElement.textContent = Message;
+                    const fileLocation3 = fileLocation.replace('\\', '/')
+                    const fileLocation2 = fileLocation3.replace('\\', '/')
+                    const newLocList = fileLocation2.split("/");
+                    newLoc = newLocList[2];
+
+                    console.log(fileLocation2);
+                    console.log(newLoc);
+                })
+                .then((response) => {
+                    fetch('/audio?FileName=' + newLoc)
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.arrayBuffer();
+                        })
+                        .then((arrayBuffer) => {
+                            const arrayBufferView = new Uint8Array(arrayBuffer);
+                            const audio = new Audio();
+                            audio.src = (window.URL || window.webkitURL).createObjectURL(new Blob([arrayBufferView], { type: 'audio/mpeg' }));
+                            document.getElementById('loading-indicator').style.display = 'none';
+                            generateAudioBtn.disabled = false;
+                            generatePromptBtn.disabled = false;
+                            generateVillainBtn.disabled = false;
+                            generateFullBtn.disabled = false;
+                            audio.play();
+                            playingAudios.push(audio);
+
+                            return audio;
+
+                        })
+
+                        .catch(error => console.error('Error:', error));
+                });
+
+        });
+        generatePromptBtn.addEventListener('click', async () => {
+            document.getElementById('loading-indicator').style.display = 'block';
+
+            generateAudioBtn.disabled = true;
+            generatePromptBtn.disabled = true;
+            generateVillainBtn.disabled = true;
+            generateFullBtn.disabled = true;
+            SquawkIndex = Math.floor(Math.random() * (12 - 1) + 1);
+            fetch('/audio?FileName=Squawk_' + SquawkIndex + '.wav')
+            .then((response) => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.arrayBuffer();
+                        })
+                        .then((arrayBuffer) => {
+                            const arrayBufferView = new Uint8Array(arrayBuffer);
+                            const audio = new Audio();
+                            audio.src = (window.URL || window.webkitURL).createObjectURL(new Blob([arrayBufferView], { type: 'audio/mpeg' }));
+                            document.getElementById('loading-indicator').style.display = 'none';
+                            generateAudioBtn.disabled = false;
+                            generatePromptBtn.disabled = false;
+                            generateVillainBtn.disabled = false;
+                            generateFullBtn.disabled = false;
+                            audio.play();
+                            playingAudios.push(audio);
+
+                            return audio;
+
+                        })
+            fetch('/TTS?Prompt=' + textInput.value)
+                .then(response => response.json())
+                .then((response) => {
+                    console.log(response);
+                    const fileLocation = response['FileLocation'];
+                    const Message = response['Message'];
+                    labelElement.textContent = Message;
+                    const fileLocation3 = fileLocation.replace('\\', '/')
+                    const fileLocation2 = fileLocation3.replace('\\', '/')
+                    const newLocList = fileLocation2.split("/");
+                    newLoc = newLocList[2];
+                    console.log(fileLocation2);
+                    console.log(newLoc);
+
+                    //const url = new URL(fileLocation2);
+                    //const url2 = window.URL.createObjectURL(fileLocation2);
+                    //audioPlayer.src = url2;
+                    //audioPlayer.play();192
+                })
+                .then((response) => {
+                    fetch('/audio?FileName=' + newLoc)
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.arrayBuffer();
+                        })
+                        .then((arrayBuffer) => {
+                            const arrayBufferView = new Uint8Array(arrayBuffer);
+                            const audio = new Audio();
+                            audio.src = (window.URL || window.webkitURL).createObjectURL(new Blob([arrayBufferView], { type: 'audio/mpeg' }));
+                            document.getElementById('loading-indicator').style.display = 'none';
+                            generateAudioBtn.disabled = false;
+                            generatePromptBtn.disabled = false;
+                            generateVillainBtn.disabled = false;
+                            generateFullBtn.disabled = false;
+                            audio.play();
+                            playingAudios.push(audio);
+                            return audio;
+
+                        })
+                        .catch(error => console.error('Error:', error));
+                });
+
+        });
+        generateVillainBtn.addEventListener('click', async () => {
+            document.getElementById('loading-indicator').style.display = 'block';
+
+            generateAudioBtn.disabled = true;
+            generatePromptBtn.disabled = true;
+            generateVillainBtn.disabled = true;
+            generateFullBtn.disabled = true;
+            fetch('/DVTTS?Prompt=' + textInput.value)
+                .then(response => response.json())
+                .then((response) => {
+                    console.log(response);
+                    const fileLocation = response['FileLocation'];
+                    const Message = response['Message'];
+                    labelElement.textContent = Message;
+                    const fileLocation3 = fileLocation.replace('\\', '/')
+                    const fileLocation2 = fileLocation3.replace('\\', '/')
+                    const newLocList = fileLocation2.split("/");
+                    newLoc = newLocList[2];
+                    console.log(fileLocation2);
+                    console.log(newLoc);
+
+                    //const url = new URL(fileLocation2);
+                    //const url2 = window.URL.createObjectURL(fileLocation2);
+                    //audioPlayer.src = url2;
+                    //audioPlayer.play();192
+                })
+                .then((response) => {
+                    fetch('/audio?FileName=' + newLoc)
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.arrayBuffer();
+                        })
+                        .then((arrayBuffer) => {
+                            const arrayBufferView = new Uint8Array(arrayBuffer);
+                            const audio = new Audio();
+                            audio.src = (window.URL || window.webkitURL).createObjectURL(new Blob([arrayBufferView], { type: 'audio/mpeg' }));
+                            document.getElementById('loading-indicator').style.display = 'none';
+                            generateAudioBtn.disabled = false;
+                            generatePromptBtn.disabled = false;
+                            generateVillainBtn.disabled = false;
+                            generateFullBtn.disabled = false;
+                            audio.play();
+                            playingAudios.push(audio);
+                            return audio;
+
+                        })
+                        .catch(error => console.error('Error:', error));
+                });
+
+        });
+        generateFullBtn.addEventListener('click', async () => {
+            document.getElementById('loading-indicator').style.display = 'block';
+
+            generateAudioBtn.disabled = true;
+            generatePromptBtn.disabled = true;
+            generateVillainBtn.disabled = true;
+            generateFullBtn.disabled = true;
+            fetch('/LongTTS?Prompt=' + textInput.value)
+                .then(response => response.json())
+                .then((response) => {
+                    console.log(response);
+                    const fileLocation = response['FileLocation'];
+                    const Message = response['Message'];
+                    labelElement.textContent = Message;
+                    const fileLocation3 = fileLocation.replace('\\', '/')
+                    const fileLocation2 = fileLocation3.replace('\\', '/')
+                    const newLocList = fileLocation2.split("/");
+                    newLoc = newLocList[2];
+                    console.log(fileLocation2);
+                    console.log(newLoc);
+
+                    //const url = new URL(fileLocation2);
+                    //const url2 = window.URL.createObjectURL(fileLocation2);
+                    //audioPlayer.src = url2;
+                    //audioPlayer.play();192
+                })
+                .then((response) => {
+                    fetch('/audio?FileName=' + newLoc)
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.arrayBuffer();
+                        })
+                        .then((arrayBuffer) => {
+                            const arrayBufferView = new Uint8Array(arrayBuffer);
+                            const audio = new Audio();
+                            audio.src = (window.URL || window.webkitURL).createObjectURL(new Blob([arrayBufferView], { type: 'audio/mpeg' }));
+                            document.getElementById('loading-indicator').style.display = 'none';
+                            generateAudioBtn.disabled = false;
+                            generatePromptBtn.disabled = false;
+                            generateVillainBtn.disabled = false;
+                            generateFullBtn.disabled = false;
+                            audio.play();
+                            playingAudios.push(audio);
+                            return audio;
+
+                        })
+                        .catch(error => console.error('Error:', error));
+                });
+
+        });
+        PromptButton.addEventListener('click', async () => {
+            document.getElementById('loading-indicator').style.display = 'block';
+
+            generateAudioBtn.disabled = true;
+            generatePromptBtn.disabled = true;
+            generateVillainBtn.disabled = true;
+            generateFullBtn.disabled = true;
+            fetch('/Prompt?Prompt=' + textInput.value)
+                .then(response => response.json())
+                .then((response) => {
+                    console.log(response);
+                    const Message = response['Message'];
+                    labelElement.textContent = Message;
+                    document.getElementById('loading-indicator').style.display = 'none';
+                    generateAudioBtn.disabled = false;
+                    generatePromptBtn.disabled = false;
+                    generateVillainBtn.disabled = false;
+                    generateFullBtn.disabled = false;
+
+                })
+
+
+        });
+        StopBtn.addEventListener('click', async () => {
+            // Iterate over each Audio object in the array and pause it
+            playingAudios.forEach((audio) => {
+                if (audio.paused === false) {
+                    audio.pause();
+                }
+                audio.onended = () => {
+                    playingAudios.splice(playingAudios.indexOf(audio), 1);
+                };
+            });
+
+        })
+        resetBtn.addEventListener('click', () => {
+            textInput.value = "";
+
+        })
+    </script>
+</body>
+
+</html>

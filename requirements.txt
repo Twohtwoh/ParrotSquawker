@@ -1,0 +1,10 @@
+flask
+subprocess
+requests
+json
+time
+torch
+TTS
+datetime
+re
+CORS

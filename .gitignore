@@ -1,0 +1,13 @@
+CreateTTSFiles.ps1
+AudioFiles/*
+.vscode/*
+node_modules/*
+package.json
+RunFlask.bat
+Test2.py
+TestJSON.py
+Output.wav
+package-lock.json
+Dutchman.wav
+Dutchman_Longer.wav
+dabc.mp3
